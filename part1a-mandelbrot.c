@@ -75,7 +75,7 @@ int main( int argc, char* args[] )
 	float difftime, child_difftime;
 	
 	//create childs
-	int * children = (int*)malloc(sizeof(int) * atoi(args[1]));
+	int * children = (int*)malloc(sizeof(int) * atoi(args[1])); //for storing child pid
 	int rows_to_complete = IMAGE_HEIGHT / atoi(args[1]);
 	int first_row_index = rows_to_complete*-1;
 	int last_row_index = 0;
@@ -90,28 +90,18 @@ int main( int argc, char* args[] )
 		if(pid == 0) //child
 			break; 
 		else //parent
-			children[i] = pid; 
+			children[i] = pid; //record child process pid
 	}
 	
 	if(pid > 0) { //==============parent==============
-		signal(SIGCHLD, sigchild_handler); //SIGCHILD handler
+		signal(SIGCHLD, sigchild_handler); //SIGCHILD handler for counting terminated child
 		close(pfd[1]); //close write end for parents
 		printf("Start collecting the image lines\n");
 		
-/*		for(int j = 0; j < atoi(args[1]); j++) {
-			//waitpid(children[j], NULL, 0);
-			MSG * par_msg = malloc(sizeof(*par_msg));
-			while(read(pfd[2*j+2], par_msg, sizeof(*par_msg)) != 0) {
-				for(int k = 0; k < IMAGE_WIDTH; k++) {
-					pixels[par_msg->row_index*IMAGE_WIDTH+k] = par_msg->rowdata[k];
-				}
-			}
-		} */
-
 		MSG * par_msg = malloc(sizeof(*par_msg));
 
-		while(child_terminated != atoi(args[1]) && //Not all childs are terminated
-			read(pfd[0], par_msg, sizeof(*par_msg)) != 0) { //read from pipe
+		while(child_terminated != atoi(args[1]) && //not all childs are terminated
+			read(pfd[0], par_msg, sizeof(*par_msg)) != 0) { //read from pipe, result not empty
 			for(int k = 0; k < IMAGE_WIDTH; k++) { //copy data to par_msg object
 				pixels[par_msg->row_index*IMAGE_WIDTH+k] = par_msg->rowdata[k];
 			}
@@ -148,8 +138,8 @@ int main( int argc, char* args[] )
 		return 0;
 
 	} else if (pid == 0) { //==============child==============
-		//close(pfd[2*i]); //close read end for childs
-		close(pfd[0]);
+
+		close(pfd[0]); //close read end for childs
 		
 		// Computation
 		printf("Child (%d): Start the computation...\n", (int)getpid());
@@ -157,12 +147,10 @@ int main( int argc, char* args[] )
 		for (y=first_row_index; y<last_row_index; y++) {
 			MSG * curr_msg = malloc(sizeof(*curr_msg));
 			curr_msg->row_index = y;
-    			for (x=0; x<IMAGE_WIDTH; x++) {
-				//compute a value for (x, y)
-				curr_msg->rowdata[x] = Mandelbrot(x, y);
-    			}
-			//write(pfd[2*i+1], curr_msg, sizeof(*curr_msg));
-			write(pfd[1], curr_msg, sizeof(*curr_msg));
+    			for (x=0; x<IMAGE_WIDTH; x++) 
+				curr_msg->rowdata[x] = Mandelbrot(x, y); //compute a value for (x, y)
+    			
+			write(pfd[1], curr_msg, sizeof(*curr_msg)); //write to pipe
     		}
 
 		//report compute timing
