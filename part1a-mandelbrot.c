@@ -139,7 +139,7 @@ int main( int argc, char* args[] )
 				curr_msg->rowdata[x] = Mandelbrot(x, y);
     			}
 			//write(pfd[2*i+1], curr_msg, sizeof(*curr_msg));
-			printf("Child (%d): Send to pipe... (x=%d, y=%d)\n", (int)getpid(), x, y);
+			//printf("Child (%d): Send to pipe... (x=%d, y=%d)\n", (int)getpid(), x, y);
 			write(pfd[1], curr_msg, sizeof(*curr_msg));
     		}
 		clock_gettime(CLOCK_MONOTONIC, &child_end_compute);
